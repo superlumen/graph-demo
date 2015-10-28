@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<head>
 <meta charset="utf-8">
 <style>
 
@@ -22,8 +22,10 @@ rect {
 }
 
 </style>
-<body>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+</head>
+
+<body>
 <script>
 
 var width = 960,
@@ -58,6 +60,28 @@ var cursor = svg.append("circle")
     .attr("transform", "translate(-100,-100)")
     .attr("class", "cursor");
 
+nodes[0].mongoId = 'abc'
+var allNodes = {};
+allNodes['abc'] = nodes[0];
+
+Nodes.find().observeChanges({
+  added: function(id, doc) {
+    allNodes[id] = doc;
+    nodes.push(doc);
+    restart();
+  }
+});
+
+Links.find().observeChanges({
+  added: function(id, doc) {
+    links.push({
+      source: allNodes[doc.sourceId],
+      target: allNodes[doc.targetId]
+    });
+    restart();
+  }
+});
+
 restart();
 
 function mousemove() {
@@ -66,15 +90,19 @@ function mousemove() {
 
 function mousedown() {
   var point = d3.mouse(this),
-      node = {x: point[0], y: point[1]},
-      n = nodes.push(node);
+      id = Random.id(),
+      node = {x: point[0], y: point[1], mongoId: id, _id: id};
+      Nodes.insert(node);
 
   // add links to any nearby nodes
   nodes.forEach(function(target) {
     var x = target.x - node.x,
         y = target.y - node.y;
     if (Math.sqrt(x * x + y * y) < 30) {
-      links.push({source: node, target: target});
+      Links.insert({
+        sourceId: node.mongoId,
+        targetId: target.mongoId
+      });
     }
   });
 
@@ -108,3 +136,4 @@ function restart() {
 }
 
 </script>
+</body>
